@@ -30,7 +30,7 @@ jobs:
           npm install -D @capacitor/cli
 
       - name: Build Web App
-        run: npx vite build
+        run: npx run build
 
       - name: Add Android Platform & Sync
         run: |
