@@ -1,16 +1,17 @@
-name: build-apk
+name: Build Android APK
 
 on:
   push:
     branches:
       - main
       - master
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
-  steps:
+    steps:
       - uses: actions/checkout@v5
 
       - name: Setup Node.js
@@ -30,7 +31,7 @@ jobs:
           npm install @capacitor/core @capacitor/android
           npm install -D @capacitor/cli
 
-      - name: Build Web Assets (Creates dist folder)
+      - name: Build Web Assets
         run: npx vite build
 
       - name: Sync Capacitor Android
