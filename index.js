@@ -23,8 +23,6 @@ app.commandLine.appendSwitch(
 );
 // Run the network stack in the browser process → one less utility process
 app.commandLine.appendSwitch("enable-features", "NetworkServiceInProcess2");
-// NOTE: enable-low-end-device-mode removed, it cuts the GPU texture tile budget
-// and causes visible seams/stripes/dots on large images.
 
 // Cap disk cache and limit renderer processes (prevents RAM growth on multi-page navigation)
 app.commandLine.appendSwitch("disk-cache-size", String(80 * 1024 * 1024));
@@ -54,49 +52,18 @@ const BLOCKED_HOSTS = [
   "*://doubleclick.net/*",
   "*://*.doubleclick.net/*",
   "*://adservice.google.com/*",
-  "*://adservice.google.de/*",
   "*://pagead2.googlesyndication.com/*",
   "*://stats.g.doubleclick.net/*",
   "*://yt3.ggpht.com/ytc/*",
   "*://fonts.googleapis.com/*",
   "*://fonts.gstatic.com/*",
-  "*://googleapis.com/*",
-  "*://gstatic.com/*",
   "*://cdn.adx1.com/*",
-  "*://intelligenceadx.com/*",
   "*://adsco.re/*",
   "*://mc.yandex.com/*",
-  "*://mc.yandex.ru/*",
-  "*://bvtpk.com/*",
-  "*://my.rtmark.net/*",
-  "*://bvtpk.com/*",
-  "*://b7510.com/*",
-  "*://gt.unbrownunflat.com/*",
-  "*://im.malocacomals.com/*",
   "*://users.videasy.net/*",
-  "*://nf.sixmossin.com/*",
-  "*://realizationnewestfangs.com/*",
   "*://acscdn.com/*",
-  "*://lt.taloseempest.com/*",
   "*://pl26708123.profitableratecpm.com/*",
-  "*://preferencenail.com/*",
-  "*://protrafficinspector.com/*",
-  "*://s10.histats.com/*",
-  "*://weirdopt.com/*",
   "*://static.cloudflareinsights.com/*",
-  "*://kettledroopingcontinuation.com/*",
-  "*://wayfarerorthodox.com/*",
-  "*://woxaglasuy.net/*",
-  "*://adeptspiritual.com/*",
-  "*://www.calculating-laugh.com/*",
-  "*://amavhxdlofklxjg.xyz/*",
-  "*://7jtjubf8p5kq7x3z2.u3qleufcm6vure326ktfpbj.cfd/*",
-  "*://5mq.get64t9vqg8pnbex1y463o.rest/*",
-  "*://usrpubtrk.com/*",
-  "*://adexchangeclear.com/*",
-  "*://rzjzjnavztycv.online/*",
-  "*://tmstr4.cloudnestra.com/*",
-  "*://tmstr4.neonhorizonworkshops.com/*",
 ];
 
 // -- Module-level state --------------------------------------------------------
@@ -131,7 +98,7 @@ function setupSession(playerSession, trailerSession) {
     stripHeaders,
   );
 
-  // Trailer: block ads only (no media intercept needed)
+  // Trailer: block ads only
   trailerSession.webRequest.onBeforeRequest({ urls: BLOCKED_HOSTS }, (_, cb) =>
     cb({ cancel: true }),
   );
@@ -153,22 +120,7 @@ function setupSession(playerSession, trailerSession) {
         callback({ cancel: true });
         return;
       }
-      // Media URL: check if it also happens to be on a blocked domain
-      try {
-        const host = new URL(url).hostname;
-        const blocked = BLOCKED_HOSTS.some((pat) => {
-          const hostPat = pat.replace(/^\*:\/\//, "").split("/")[0];
-          return hostPat.startsWith("*.")
-            ? host.endsWith(hostPat.slice(1))
-            : host === hostPat || host === hostPat.replace(/^\*\./, "");
-        });
-        if (blocked) {
-          blockStats.recordBlockedRequest(url);
-          callback({ cancel: true });
-          return;
-        }
-      } catch {}
-      // Pass through + notify renderer
+      
       const mw = getMainWindow();
       if (mw && !mw.isDestroyed()) {
         if (url.includes(".m3u8")) {
@@ -185,7 +137,7 @@ function setupSession(playerSession, trailerSession) {
     },
   );
 
-  // YouTube consent cookie → suppress consent gate in both sessions
+  // YouTube consent cookie suppression
   const ytCookie = {
     url: "https://www.youtube.com",
     name: "SOCS",
@@ -211,8 +163,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
-    minWidth: 900,
-    minHeight: 600,
+    minWidth: 800,
+    minHeight: 500,
     backgroundColor: "#0a0a0a",
     icon:
       process.platform === "linux"
@@ -227,28 +179,22 @@ function createWindow() {
       webviewTag: true,
       backgroundThrottling: true,
       spellcheck: false,
-      // Caps the renderer's V8 heap + exposes gc() for manual GC hints after navigation
       additionalArguments: ["--js-flags=--max-old-space-size=256 --expose-gc"],
     },
   });
 
-  // Force long-lived disk caching for TMDB images in the default session.
+  // TMDB Image caching optimization
   session.defaultSession.webRequest.onHeadersReceived(
     { urls: ["*://image.tmdb.org/*"] },
     (details, callback) => {
       const headers = { ...details.responseHeaders };
-      headers["cache-control"] = ["public, max-age=604800, immutable"]; // 7 days
+      headers["cache-control"] = ["public, max-age=604800, immutable"];
       delete headers["pragma"];
       delete headers["expires"];
       callback({ responseHeaders: headers });
     },
   );
 
-  // -- Lazy session setup ----------------------------------------------------
-  // Player/trailer sessions are configured on the first webview attach or
-  // when the pop-out window opens, whichever comes first.
-
-  // Block popups from webviews, intercept fullscreen, lazy-init sessions
   mainWindow.webContents.on("did-attach-webview", (_, wc) => {
     if (!sessionsConfigured) {
       sessionsConfigured = true;
@@ -257,7 +203,6 @@ function createWindow() {
       setupSession(playerSession, trailerSession);
     }
 
-    // Track player webviews for cleanup on player-stopped
     try {
       if (wc.session === session.fromPartition("persist:player")) {
         playerWcIds.add(wc.id);
@@ -276,7 +221,6 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, "dist/index.html"));
 
-  // Trigger scheduled backup after load
   mainWindow.webContents.once("did-finish-load", () => {
     _bench("renderer loaded");
     const sbSettings = storageIpc.loadScheduledBackupSettings();
@@ -285,7 +229,6 @@ function createWindow() {
     }
   });
 
-  // Intercept close if downloads are active
   let closeResponsePending = false;
   mainWindow.on("close", (e) => {
     const running = downloadsIpc
@@ -326,14 +269,10 @@ playerIpc.register(getMainWindow, {
 blockStats.init(getMainWindow);
 discordRpc.register(ipcMain);
 
-// get-block-stats lives with its data
 ipcMain.handle("get-block-stats", () => blockStats.getBlockStats());
 
 // -- Player memory cleanup ---------------------------------------------
-// Called by MoviePage / TVPage on component unmount.
-// Destroys the player webview WebContents by tracked ID, then flushes caches and GCs.
 ipcMain.on("player-stopped", () => {
-  // Step 1: Mute + destroy all tracked player WebContents by ID.
   for (const id of playerWcIds) {
     try {
       const wc = webContents.fromId(id);
@@ -347,7 +286,6 @@ ipcMain.on("player-stopped", () => {
   }
   playerWcIds.clear();
 
-  // Step 2: Flush HTTP + shader caches from the player session.
   try {
     const ps = session.fromPartition("persist:player");
     ps.clearCache().catch(() => {});
@@ -356,7 +294,6 @@ ipcMain.on("player-stopped", () => {
     );
   } catch {}
 
-  // Step 3: GC hints
   if (typeof global.gc === "function") global.gc();
   const mw = mainWindow;
   if (mw && !mw.isDestroyed()) {
@@ -366,8 +303,6 @@ ipcMain.on("player-stopped", () => {
   }
 });
 
-// -- Desktop notifications -----------------------------------------------------
-// Called from the renderer whenever it wants a native OS notification.
 ipcMain.handle(
   "show-notification",
   (_event, { title, body, silent = false }) => {
@@ -382,110 +317,6 @@ ipcMain.handle(
     } catch {}
   },
 );
-
-// -- Picture-in-Picture / Pop-Out window --------------------------------------
-// Opens the player URL in a small always-on-top BrowserWindow (full site UI,
-// with subtitles and controls). The Main Window closes the stream to avoid duplication.
-let pipWindow = null;
-const getPipWindow = () => pipWindow;
-
-ipcMain.handle("open-pip-window", (_, { url, title }) => {
-  if (!url || url === "about:blank") return { ok: false, reason: "no-url" };
-
-  // Guarantee tracker/ad blocking is active in persist:player before any load
-  if (!sessionsConfigured) {
-    sessionsConfigured = true;
-    const playerSession = session.fromPartition("persist:player");
-    const trailerSession = session.fromPartition("persist:trailer");
-    setupSession(playerSession, trailerSession);
-  }
-
-  if (pipWindow && !pipWindow.isDestroyed()) {
-    pipWindow.loadURL(url);
-    pipWindow.focus();
-    return { ok: true };
-  }
-
-  pipWindow = new BrowserWindow({
-    width: 640,
-    height: 360,
-    minWidth: 320,
-    minHeight: 180,
-    alwaysOnTop: true,
-    title: title ? `${title} - Pop-out` : "Pop-out Player",
-    backgroundColor: "#000000",
-    // Same custom title bar as the main window
-    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "hidden",
-    frame: process.platform !== "win32",
-    webPreferences: {
-      partition: "persist:player",
-      nodeIntegration: false,
-      contextIsolation: true,
-      // Injects the custom title bar and wires window-control IPC
-      preload: path.join(__dirname, "popout-preload.js"),
-    },
-  });
-
-  // Block all popup windows from the streaming site and any nested frames
-  pipWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
-
-  // If the site uses <webview> elements (unlikely but safe), block there too
-  pipWindow.webContents.on("did-attach-webview", (_, wc) => {
-    wc.setWindowOpenHandler(() => ({ action: "deny" }));
-  });
-
-  pipWindow.loadURL(url);
-
-  // Push maximize state into the popout renderer so the title bar icon updates
-  pipWindow.on("maximize", () => {
-    if (!pipWindow.isDestroyed())
-      pipWindow.webContents.send("popout-window-maximized", true);
-  });
-  pipWindow.on("unmaximize", () => {
-    if (!pipWindow.isDestroyed())
-      pipWindow.webContents.send("popout-window-maximized", false);
-  });
-
-  const notifyMain = (channel) => {
-    const mw = getMainWindow();
-    if (mw && !mw.isDestroyed()) mw.webContents.send(channel);
-  };
-
-  pipWindow.on("closed", () => {
-    pipWindow = null;
-    notifyMain("pip-window-closed");
-  });
-
-  notifyMain("pip-window-opened");
-  return { ok: true };
-});
-
-ipcMain.handle("close-pip-window", () => {
-  if (pipWindow && !pipWindow.isDestroyed()) pipWindow.close();
-});
-
-ipcMain.handle("get-pip-webcontents-id", () => {
-  if (pipWindow && !pipWindow.isDestroyed()) return pipWindow.webContents.id;
-  return null;
-});
-
-// -- Popout window controls (used by popout-preload.js title bar buttons) -----
-ipcMain.handle("popout-window-minimize", () => {
-  if (pipWindow && !pipWindow.isDestroyed()) pipWindow.minimize();
-});
-ipcMain.handle("popout-window-toggle-maximize", () => {
-  if (!pipWindow || pipWindow.isDestroyed()) return;
-  if (pipWindow.isMaximized()) pipWindow.unmaximize();
-  else pipWindow.maximize();
-});
-ipcMain.handle("popout-window-close", () => {
-  if (pipWindow && !pipWindow.isDestroyed()) pipWindow.close();
-});
-ipcMain.handle("popout-window-is-maximized", () => {
-  return pipWindow && !pipWindow.isDestroyed()
-    ? pipWindow.isMaximized()
-    : false;
-});
 
 // -- Single-instance lock ------------------------------------------------------
 const gotTheLock = app.requestSingleInstanceLock();
