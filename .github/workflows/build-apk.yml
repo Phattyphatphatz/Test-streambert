@@ -1,51 +1,49 @@
 name: Build Android APK
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 18
 
       - name: Setup Java JDK
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '21'
+          distribution: 'zulu'
+          java-version: '17'
 
       - name: Install Web Dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Install Capacitor Dependencies
+      - name: Build Web Assets
+        run: npm run build
+
+      - name: Sync Capacitor to Android
         run: |
-          npm install @capacitor/core @capacitor/android
-          npm install -D @capacitor/cli
-
-      - name: Build Web App
-        run: npx vite build
-
-      - name: Add Android Platform & Sync
-        run: |
-          npx cap add android
           npx cap sync android
 
-      - name: Build Debug APK
+      - name: Build APK via Gradle
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
       - name: Upload APK Artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
-          name: Streambert-Android-APK
+          name: Streambert-Debug-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
           
