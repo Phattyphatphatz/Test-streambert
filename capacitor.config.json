@@ -1,0 +1,6 @@
+{
+  "appId": "com.streambert.app",
+  "appName": "Streambert",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
