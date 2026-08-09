@@ -1,12 +1,9 @@
 {
   "appId": "com.streambert.app",
   "appName": "Streambert",
-  "webDir": "dist",
-  "bundledWebRuntime": false,
+  "webDir": "www",
   "server": {
     "androidScheme": "http",
-    "allowNavigation": [
-      "*"
-    ]
+    "allowNavigation": ["*"]
   }
 }
