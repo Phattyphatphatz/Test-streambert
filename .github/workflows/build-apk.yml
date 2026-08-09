@@ -23,7 +23,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '21'  # Upgraded from 17 to 21 to match Gradle release target
 
       - name: Install Web Dependencies
         run: npm ci --ignore-scripts
