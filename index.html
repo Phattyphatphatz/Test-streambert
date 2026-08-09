@@ -1,33 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Streambert</title>
-  <link rel="stylesheet" href="./style.css" />
-</head>
-<body>
-  <div id="app">
-    <header class="app-header">
-      <h1>Streambert</h1>
-    </header>
-    
-    <main class="content-container">
-      <div class="player-wrapper">
-        <video id="stream-player" controls autoplay playsinline poster="https://via.placeholder.com/800x450/111/fff?text=Streambert+Video">
-          <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4" />
-          Your browser does not support video playback.
-        </video>
-      </div>
-      
-      <div class="controls-card">
-        <h2>Stream Status</h2>
-        <p id="status-text">Ready to stream</p>
-        <button id="reload-btn" class="primary-btn">Reload Stream</button>
-      </div>
-    </main>
-  </div>
-
-  <script src="./app.js"></script>
-</body>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Streambert</title>
+        <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    </head>
+    <body>
+        <div id="root"></div>
+        <script type="module" src="/src/main.jsx"></script>
+    </body>
 </html>
