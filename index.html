@@ -2,10 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Prevents desktop scaling cutoffs and fits the screen -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Streambert</title>
+
+  <!-- IMPORTANT: All paths MUST use relative dots (./) instead of leading slashes (/) -->
+  <!-- Example CSS link: -->
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
+  <!-- Container where your UI mounts -->
   <div id="root"></div>
+
+  <!-- IMPORTANT: Load your main JavaScript file using a relative path -->
+  <!-- Update "app.js" to your actual main file (e.g., ./src/main.js or ./renderer.js) -->
+  <script src="./app.js"></script>
 </body>
 </html>
