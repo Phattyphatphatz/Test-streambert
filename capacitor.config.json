@@ -1,7 +1,7 @@
 {
   "appId": "com.streambert.app",
   "appName": "Streambert",
-  "webDir": "www",
+  "webDir": "dist",
   "server": {
     "androidScheme": "https",
     "cleartext": true
