@@ -31,13 +31,21 @@ jobs:
       - name: Build Web Assets
         run: npm run build --if-present
 
-      - name: Ensure Web Directory Exists & Sync Capacitor
+      - name: Prepare www Directory & Sync Capacitor
         run: |
           npm install @capacitor/cli @capacitor/core @capacitor/android
-          mkdir -p dist
-          if [ ! -f dist/index.html ]; then
-            echo '<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" /></head><body><div id="root"></div></body></html>' > dist/index.html
+          
+          # Create the exact folder Capacitor expects
+          mkdir -p www
+          
+          # Copy repository root web files into www directory
+          cp -r index.html js css assets public src www/ 2>/dev/null || true
+          
+          # Fallback check to ensure index.html exists in www
+          if [ ! -f www/index.html ]; then
+            echo '<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" /></head><body><div id="root"></div></body></html>' > www/index.html
           fi
+          
           npx cap add android || true
           npx cap sync android
 
@@ -48,8 +56,7 @@ jobs:
           ./gradlew assembleDebug
 
       - name: Upload APK Artifact
-        uses: actions/upload-artifact@v7  # Updated from v5 to v6 for full Node 24 support
+        uses: actions/upload-artifact@v6
         with:
           name: Streambert-Debug-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
-          
