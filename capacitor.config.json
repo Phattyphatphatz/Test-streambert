@@ -3,7 +3,7 @@
   "appName": "Streambert",
   "webDir": "www",
   "server": {
-    "androidScheme": "http",
-    "allowNavigation": ["*"]
+    "androidScheme": "https",
+    "cleartext": true
   }
 }
