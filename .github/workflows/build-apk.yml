@@ -17,7 +17,7 @@ jobs:
       - name: Setup Node.js Environment
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20  # Upgraded from 18 to fix EBADENGINE errors
 
       - name: Setup Java JDK
         uses: actions/setup-java@v4
@@ -26,7 +26,7 @@ jobs:
           java-version: '17'
 
       - name: Install Web Dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts  # Bypasses the failing electron install script
 
       - name: Build Web Assets
         run: npm run build
@@ -46,4 +46,3 @@ jobs:
         with:
           name: Streambert-Debug-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
-          
